@@ -1,0 +1,346 @@
+#include <iostream>
+using std::cout; using std::endl; using std::cin;
+using std::ostream;
+#include <vector>
+using std::vector;
+#include <string>
+using std::string;
+#include <sstream>
+using std::ostringstream;
+#include <algorithm>
+using std::copy; using std::find;
+#include <iterator>
+using std::ostream_iterator;
+
+template<typename T>
+class DJSet;
+
+//struct for class element, acts as our Node
+//has T data and a next pointer to link lists
+template <typename T>
+struct Element{
+public:
+  T data_;
+  Element* next_;
+
+  Element()=default;
+  Element(T d) : data_(d), next_(nullptr) {};
+
+  //couts the data for the element
+  friend ostream& operator<<(ostream& out, Element e){
+    out << e.data_;
+    return out;
+  };
+  friend class DJSet<T>;
+};
+
+
+//our DisJoint Set
+template <typename T>
+class DJSet{
+  //private:
+private:
+  vector<Element<T>* > v_;
+  // Element<T>* copy_one_list(Element<T>*);
+public:
+  DJSet() = default;
+  DJSet(T);
+  DJSet(vector<T>);
+  DJSet(const DJSet&);
+  DJSet& operator=(DJSet);
+  ~DJSet();
+  Element<T>* member(T);
+  Element<T>* add(T);
+  Element<T>* join(T, T);
+
+  //iterates through the vector and outs all of the linked lists
+  friend ostream& operator<<(ostream& out, const DJSet<T>& ds){
+    //if the vector is empty, print empty
+    if(ds.v_.size() == 0){
+		out << "empty";
+	}
+    //otherwise, print all of the data in the linked lists
+  	else{
+  		for(Element<T>* i : ds.v_){
+  			for(Element<T>* ptr = i; ptr != nullptr; ptr = ptr->next_){
+  				out << ptr->data_ << "-> ";
+  			}
+            if(i != ds.v_[ds.v_.size() -1]){
+  			   out << endl;
+            }
+  		}
+  	}
+  	return out;
+  };
+};
+
+//creates an Element type to put into the DJSet
+template <typename T>
+DJSet<T>::DJSet(T t){
+  Element<T>* new_ele = new Element<T>(t);
+  v_.push_back(new_ele);
+}
+
+template <typename T>
+DJSet<T>::DJSet(vector<T> v){
+  //have to check for duplicates
+  //iterate through the parameter vector and append everything thats not
+  //a duplicate of something else
+  vector<T> values;
+  for(auto i : v){
+    if(find(values.begin(),values.end(),i) == values.end() ){
+      values.push_back(i);
+    }
+  }
+
+  //now we can add values from vector values to add to DJSet
+  for(auto j : values){
+    Element<T>* val = new Element<T>(j);
+    v_.push_back(val);
+  }
+}
+
+//assignment operator
+template <typename T>
+DJSet<T>::DJSet(const DJSet& djs){
+  //iterate through the copied disjoint set
+  //copy the elements and their linked lists to our DJset
+  for(size_t i; i < djs.v_.size(); i++ ){
+    v_.push_back(djs.v_[i]);
+    Element<T>* ptr2 = v_[i];
+
+    //iteration through each linked list
+    for(Element<T>* ptr = djs.v_[i]; ptr != nullptr; ptr = ptr->next_){
+      ptr2->next_ = ptr->next_;
+      ptr2 = ptr2->next_;
+    }
+  }
+}
+
+//copy operator
+template <typename T>
+DJSet<T>& DJSet<T>::operator=(DJSet dj){
+  swap(v_, dj.v_);
+  return *this;
+}
+
+//destructor
+template <typename T>
+DJSet<T>::~DJSet(){
+  for(Element<T>* i : v_){
+    //iterates through the disjoint set
+    //deletes memory as we 'walk' through the DJSet
+    Element<T>* ptr = i;
+    while(ptr != nullptr){
+      delete ptr;
+      i = i->next_;
+      ptr = i;
+    }
+  }
+}
+
+//locates the head pointer of a member of disjoint set
+template <typename T>
+Element<T>* DJSet<T>::member(T t){
+  //iterate through the disjoint set
+  for(Element<T>* i : v_){
+    //iterate through the linked lists individually
+    for(Element<T>* ptr = i; ptr != nullptr; ptr = ptr->next_){
+      //if we find data, return the head_ pointer
+      if(ptr->data_ == t){
+        return i;
+      }
+    }
+  }
+  //otherwise if it is not in the set, then return nullptr
+  return nullptr;
+}
+
+//adding a new data element to the disjoint set
+template <typename T>
+Element<T>* DJSet<T>::add(T t){
+  //if its not in the set
+  if(member(t) == nullptr){
+    //create new location, and append it to disjoint set
+    Element<T>* new_ele = new Element<T>(t);
+      if(new_ele != nullptr){
+        v_.push_back(new_ele);
+      }
+    return new_ele;
+  }
+  //otherwise, its in the set and return nullptr
+  return nullptr;
+}
+
+//function to add one linked list to another
+template <typename T>
+Element<T>* DJSet<T>::join(T t1, T t2){
+  //if neither of the values are in the DJSet
+  if(member(t1) != nullptr && member(t2) != nullptr){
+
+    //creates pointers of their located head_
+    Element<T>* to_move = member(t1);
+    Element<T>* move_to = member(t2);
+
+    //move the one to move to the other linked list at the end
+    while(move_to != nullptr){
+        if(move_to->next_ == nullptr){
+            move_to->next_ = to_move;
+            move_to->next_->next_ = to_move->next_;
+            break;
+        }
+        move_to = move_to->next_;
+    }
+    //delete the old pointers linked list in the vector
+    for(auto i = 0; i < v_.size();i++){
+      if(v_[i] == to_move){
+        v_.erase(v_.begin()+i);
+        break;
+      }
+    }
+    return member(t2);
+    }
+
+  //else return nullptr
+  return nullptr;
+}
+
+
+int main (){
+  int case_num;
+  cin >> case_num;
+  string name;
+  switch (case_num){
+
+    // basic constructors
+  case 1: {
+    cin >> name;
+    Element<string> e(name);
+    cout << e << endl;
+    DJSet<string> djs_empty;
+    cout << djs_empty << endl;
+    break;
+  }
+
+    // single T constructor
+  case 2: {
+    cin >> name;
+    DJSet<string> djs_one(name);
+    cout << djs_one << endl;
+    break;
+  }
+
+    // vector T constructor.
+  case 3: {
+    vector<string> v_s;
+    while (cin >> name)
+      v_s.push_back(name);
+    DJSet<string> djs_3(v_s);
+    cout << djs_3 << endl;
+    break;
+  }
+
+    // member
+  case 4:{
+    vector<string> v_s;
+    Element<string>* ptr;
+    while (cin >> name)
+      v_s.push_back(name);
+    DJSet<string> djs(v_s);
+    ptr = djs.member(v_s[0]);
+    cout << "Name:" << v_s[0]
+	 <<( (ptr == nullptr) ? " not-member" : " member")
+	 << endl;
+    ptr = djs.member("xyzzy");
+    cout << "Name:" << "xyzzy"
+	 <<( (ptr == nullptr) ? " not-member" : " member")
+	 << endl;
+    break;
+  }
+
+    // add
+  case 5: {
+    DJSet<string> djs_add;
+    Element<string>* ptr;
+    while (cin >> name){
+      ptr = djs_add.add(name);
+      cout << "Name:" << name
+	   <<( (ptr == nullptr) ? " not-added" : " added")
+	   << endl;
+    }
+    cout << djs_add << endl;
+      cout << "Add returns:"
+	   <<( (ptr == nullptr) ? " nullptr" : name)
+	   << endl;
+    break;
+  }
+
+
+
+    // copy constructor
+  case 6: {
+    cin >> name;
+    DJSet<string> djs(name);
+    DJSet<string> djs_copy(djs);
+    cin >> name;
+    djs_copy.add(name);
+    cin >> name;
+    djs.add(name);
+    cout << djs << endl;
+    cout << endl;
+    cout << djs_copy << endl;
+    break;
+  }
+
+
+    // operator =
+  case 7: {
+    DJSet<string> djs_rhs;
+    DJSet<string> djs_lhs;
+    cin >> name;
+    djs_rhs.add(name);
+    cin >> name;
+    djs_rhs.add(name);
+
+    cin >> name;
+    djs_lhs.add(name);
+    cin >> name;
+    djs_lhs.add(name);
+
+    djs_lhs = djs_rhs;
+    cout << djs_lhs << endl;
+    cout << endl;
+    cout << djs_rhs << endl;
+    break;
+  }
+
+    // join
+  case 8:{
+    DJSet<string> djs;
+    Element<string>* ptr;
+
+    while(cin >> name)
+      djs.add(name);
+    djs.join("Francis", "Fiona");
+    cout << djs << endl;
+    cout << endl;
+    djs.join("Francis", "Fred");
+    cout << djs << endl;
+    cout << endl;
+    djs.join("Faith", "Frieda");
+    ptr = djs.join("Faith", "Fiona");
+    cout << djs << endl;
+    cout << endl;
+    cout << "Faith and Fiona "
+	 <<( (ptr == nullptr) ? " not-joined" : " joined")
+	 << endl;
+    cout << *ptr << endl;
+    ptr = djs.join("xyzzy", "Ford");
+    cout << djs << endl;
+    cout << "xyzzy and Ford"
+	 <<( (ptr == nullptr) ? " not-joined" : " joined")
+	 << endl;
+    break;
+  }
+  }
+}
