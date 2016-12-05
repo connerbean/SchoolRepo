@@ -1,0 +1,230 @@
+
+#include <iostream>
+using std::cin; using std::cout; using std::endl;
+#include <vector>
+using std::vector;
+#include <string>
+using std::string;
+using std::ostream; using std::istream;
+using std::boolalpha;
+
+class Grid{
+	
+	//private data memebers for Grid
+	private:
+	
+	//dimension, the goal coordinates x,y
+	size_t dimension_;
+	size_t goal_x_;
+	size_t goal_y_;
+	
+	//public data members for Grid
+	public:
+	
+	//class contructors
+	Grid()=default;
+	Grid(size_t,size_t,size_t);
+	friend class Bot;
+};
+
+//start grid and initialize variables
+Grid::Grid(size_t d, size_t x, size_t y){
+	dimension_ = d;
+	goal_x_ = x;
+	goal_y_ = y;
+}
+
+//bot Class
+class Bot{
+	
+	//private data members for bot
+	private:
+	
+	//direction (n,s,e,w), positions, cmd string
+	char direction_;
+	size_t x_position_;
+	size_t y_position_;
+	string command_;
+	Grid grid_;
+	//index to go through command string
+    size_t index_;
+	
+	//public data members for bot
+	public:
+	
+	Bot()=default;
+	Bot(size_t,size_t,char,string,Grid&);
+	void forward();
+	void back();
+	void left();
+	void right();
+	void execute_command();
+	bool at_goal();
+	friend ostream& operator<<(ostream&,Bot&);
+};
+
+//start bot functions here
+Bot::Bot(size_t x, size_t y, char d, string c, Grid&g){
+	direction_ = d;
+	x_position_ = x;
+	y_position_ = y;
+	command_ = c;
+	grid_ = g;
+    index_ =  0;
+}
+
+//move the bot forward as long as you are not in risk of going over
+void Bot::forward(){
+
+	//checks if the bot can move forward, if it can then change
+	//	the position of the bot
+
+	if(direction_ == 'n' && y_position_ < grid_.dimension_ - 1){
+		y_position_ ++;
+	}
+	if(direction_ == 'e' && x_position_ < grid_.dimension_ - 1){
+		x_position_ ++;
+	}
+	if(direction_ == 's' && y_position_ > 0){
+		y_position_ --;
+	}
+	if(direction_ == 'w' && x_position_ > 0){
+		x_position_ --;
+	}
+}
+
+//move the bot backwards as long as the position is valid
+void Bot::back(){
+
+	//uses if statements to check direction and if the bot can move
+	// to the specified location
+	
+	if(direction_ == 'n' && y_position_ > 0){
+		y_position_--;
+	}
+	if(direction_ == 'e' && x_position_ > 0){
+		x_position_ --;
+	}
+	if(direction_ == 's' && y_position_ < grid_.dimension_ - 1){
+		y_position_ ++;
+	}
+	if(direction_ == 'w' && x_position_ < grid_.dimension_ - 1){
+		x_position_ ++;
+	}
+}
+
+//turns the bot direction to the left
+void Bot::left(){
+
+	//uses if statements to determine which way should be the new way
+	
+	if(direction_ == 'n'){
+		direction_ = 'w';
+	}
+	else if(direction_ == 'e'){
+		direction_ = 'n';
+	}
+	else if(direction_ == 's'){
+		direction_ = 'e';
+	}
+	else if(direction_ == 'w'){
+		direction_ = 's';
+	}
+}
+
+//same thing as the left function, except turning to the right instead
+void Bot::right(){
+	
+	if(direction_ == 'n'){
+		direction_ = 'e';
+	}
+	else if(direction_ == 'e'){
+		direction_ = 's';
+	}
+	else if(direction_ == 's'){
+		direction_ = 'w';
+	}
+	else if(direction_ == 'w'){
+		direction_ = 'n';
+	}
+}
+
+//need this function to execute each letter 
+void Bot::execute_command(){
+
+	//if the index is past the possible indeces, then
+	//	send it back to zero
+
+    if(index_ >= command_.length()){
+        index_ = 0;
+    }
+
+    //iterate through the command string
+		char i = command_[index_];
+			if(i == 'f'){
+				forward();
+			}
+			if(i == 'b'){
+				back();
+			}
+			if(i == 'l'){
+				left();
+			}
+			if(i == 'r'){
+				right();
+			}
+	
+	//increase the index to progress through cmd string
+    index_ ++;
+}
+
+//returns true if the position of the bot is at the goal position and
+// false otherwise
+bool Bot::at_goal(){
+	if(x_position_ == grid_.goal_x_ && y_position_ == grid_.goal_y_){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+//operator overloader so we can print the bot facts
+ostream& operator<<(ostream& out, Bot& b){
+    out <<"("<<b.x_position_<<","<<b.y_position_<<")" << " facing:" << b.direction_;
+    return out;
+}
+
+//main function, not sure what to do with this yet. 
+int main(){
+
+  //takes in grid parameters
+  cout << boolalpha;
+  size_t dim, goal_x, goal_y;
+  cin >> dim >> goal_x >> goal_y;
+
+  //takes in the bot parameters
+  size_t bot_x, bot_y;
+  char bot_dir;
+  string command_str;
+  cin >> bot_x >> bot_y >> bot_dir >> command_str;
+
+  //takes in the limit
+  long limit;
+  cin >> limit;
+  
+  //creates the bot, grid and initializes the count
+  Grid g(dim, goal_x, goal_y);
+  Bot b(bot_x, bot_y, bot_dir, command_str ,g);
+  int cnt=0;
+
+  //while loop to check the requirements
+  while(!b.at_goal() && cnt < limit){
+    //cout << b << endl;
+    b.execute_command();
+    ++cnt;
+  }
+  cout << b << endl;
+  cout << b.at_goal();
+}
+
