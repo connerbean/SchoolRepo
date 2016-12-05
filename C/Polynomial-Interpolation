@@ -1,0 +1,255 @@
+#include <iostream>
+using std::cin; using std::cout; using std::endl;
+#include <string>
+using std::string; using std::stol;
+#include <vector>
+using std::vector;
+using std::ostream;
+#include <map>
+using std::map;
+#include <cmath>
+using std::pow; using std::abs;
+#include <limits>
+
+class Polynomial{
+	//private data, values relating to polynomial
+	private:
+	vector<long> coe_;
+	map <float, double> values_;
+	double x0_;
+	double x1_;
+	
+	public:
+	
+	//public data methods
+	Polynomial()=default;
+	Polynomial(string s, long samp = 10, double x0=0.0, double x1=1.0);
+	Polynomial(vector<double>& v, long samp = 10, double x0 = 0.0, 
+		double x1=1.0);
+	void set_table(size_t samples, double x0, double x1);
+	void process_string(string line, char delim=' ');
+	double eval(double);
+	double full_eval(double);
+	friend ostream& operator<<(ostream&, Polynomial&);
+	friend Polynomial operator+(Polynomial&, Polynomial&);
+
+};
+
+//completes a full evaluation at the given value, returns endvalue
+double Polynomial::full_eval(double val){
+	double result = 0;
+	//follows the polynomial 
+	for(size_t i = 0; i < coe_.size(); i++){
+		long power = coe_.size() - 1 - i;
+		long coefficient = coe_[i];
+		result += (coefficient * pow(val,power));
+	}
+	return result;
+}
+
+//process string function, parces string for only numbers
+void Polynomial::process_string(string line, char delim){
+	string temp_sub = "";
+    
+    //while we find a space
+	while(line.find(delim)){
+		
+		//if there is no more spaces in the line
+		if(line.find(delim) == string::npos){
+			 coe_.push_back(stol(line));
+			 break;
+		}
+		//create word we want to push back to vector
+		temp_sub = line.substr(0,line.find(delim));
+   
+   		//pushback the word and create the new shortened line 
+	    coe_.push_back(stol(temp_sub));
+        line = line.substr(line.find(delim) + 1,line.length() - 1);
+		}
+}
+
+//creating the polynomial class with parameters
+Polynomial::Polynomial(string s, long samp, double x0, 
+	double x1){
+	//clears table just in case, sets values
+    values_.clear();
+	x0_ = x0; x1_ = x1;
+	double key = x0;
+	process_string(s);	
+	//creates increment and sets the map
+	long increment = samp - 1;
+	double add_inc = (x1-x0) / increment;
+	while(key<=x1){
+		values_[key] = full_eval(key);
+		key += add_inc;
+	}
+    values_[x1] = full_eval(x1);
+}
+
+//sets the table of values
+void Polynomial::set_table(size_t samples, double x0, double x1){
+	//sets data member values, clears table, fills map
+	x0_ = x0; x1_ = x1;
+	values_.clear();
+	double key = x0;
+	long increment = samples - 1;
+	double add_inc = (x1-x0) / increment;
+	while(key<=x1){
+		values_[key] = full_eval(key);
+		key += add_inc;
+	}
+    values_[x1] = full_eval(x1);
+}
+
+//fills the map but instead of a string it uses a vector
+//reference our constructor function
+Polynomial::Polynomial(vector<double>& v, long samp, double x0,
+	double x1){
+	x0_ = x0; x1_ = x1;
+	for(auto i : v){
+		coe_.push_back(i);
+	}
+	double key = x0;
+	long increment = samp - 1;
+	float add_inc = (x1-x0)/ increment;
+	while(key<=x1){
+		values_[key] = full_eval(key);
+		key += add_inc;
+	}
+    values_[x1] = full_eval(x1);
+}
+
+//completes the necessary eval for the value
+double Polynomial::eval(double val){
+	//if the value is in the map return the value
+	if(values_.find(val) != values_.end()){
+		return values_[val];
+	}
+	//otherwise if the value is in between but not in, interpolate
+	else if(val >= x0_ && val <= x1_ && values_.find(val) == values_.end()){
+		auto itr = values_.lower_bound(val);
+		double x2 = itr->first;
+		double y2 = itr->second;
+		itr--;
+		double x1 = (itr)->first;
+		double y1 = (itr)->second;
+		return (y1 + (val - x1) * ((y2-y1)/(x2-x1)));
+	}
+	//otherwise fulleval the value
+	else{
+		return full_eval(val);
+	}
+}
+
+//our cout function
+ostream& operator<<(ostream& out, Polynomial&p){
+	//uses a bunch of if statements to determine how we should print
+	//the term based on its properties
+	for(size_t i = 0; i < p.coe_.size(); i++){
+		if(p.coe_[i] == 0){ continue; }
+		//if it is the first term, no preceding sign
+		if(i == 0){
+			if(p.coe_[i] < 0){
+				out << '-' << abs(p.coe_[i]) << "x**" << p.coe_.size()-1 - i;
+			}
+			else{
+				out << p.coe_[i] << "x**" << p.coe_.size()-1-i;
+			}
+		}
+		//if its the last term, no x's involved
+		else if(i == p.coe_.size()-1){
+			if(p.coe_[i] < 0){
+				out << " - " << abs(p.coe_[i]);
+			}
+			else{
+				out << " + " <<p.coe_[i];
+			}
+		}
+		//middle term
+		else{
+			if(p.coe_[i] < 0){
+				out << " - " << abs(p.coe_[i]); 
+				if(p.coe_.size()-1-i == 1){
+					 out << 'x';
+				}
+				else{
+					 out << "x**" << p.coe_.size()-1-i;
+				}
+			}
+			else{
+				out << " + " << p.coe_[i];
+				if(p.coe_.size()-1-i == 1){
+					 out << 'x';
+				}
+				else{
+					 out << "x**" << p.coe_.size()-1-i;
+				}
+			}
+		}
+	}
+	return out;
+}
+
+//our addition operator
+Polynomial operator+(Polynomial &p1, Polynomial &p2){
+	//creates a vector
+	vector<double> v;
+	
+	//if they have same amount of terms
+	if(p1.coe_.size() == p2.coe_.size()){
+		for(size_t i = 0; i < p1.coe_.size(); i++){
+			v.push_back(p1.coe_[i] + p2.coe_[i]);
+		}
+	}
+	//if one is larger than the other add accordingly
+	else if(p1.coe_.size() < p2.coe_.size()){
+		size_t dif = p2.coe_.size() - p1.coe_.size();
+		for(size_t i = 0; i < dif; i++){
+			v.push_back(p2.coe_[i]);
+		}
+		for(size_t j = 0; j<p1.coe_.size(); j++){
+			
+			v.push_back(p1.coe_[j] + p2.coe_[j+dif]);
+		}
+	}
+	//if the other is larger than the first add accordingly
+	else{
+		size_t dif = p1.coe_.size() - p2.coe_.size();
+		for(size_t i = 0; i < dif; i++){
+			v.push_back(p1.coe_[i]);
+		}
+	
+		for(size_t j = 0; j < p2.coe_.size(); j++){
+			v.push_back(p1.coe_[j+dif] + p2.coe_[j]);
+		}
+	}
+	Polynomial poly(v);
+	return poly;
+}
+
+//the given main function
+int main(){
+  size_t samples;
+  double x0, x1, test_val;
+  string poly;
+
+  cin >> samples >> x0 >> x1 >> test_val;
+  cin.ignore (std::numeric_limits<std::streamsize>::max(), '\n'); 
+  getline(cin, poly);
+  Polynomial p1(poly, samples, x0, x1);
+  cout << p1 << endl;
+  cout << p1.eval(test_val) << endl;
+  cout << p1.full_eval(test_val) << endl;
+  cout << p1.eval(x1) << endl;
+  cout << p1.eval(x1 + 1) << endl;
+
+  getline(cin, poly);
+  Polynomial p2(poly, samples, x0, x1);
+  Polynomial p = p1 + p2;
+  p.set_table(samples, x0, x1);
+  cout << p << endl;  
+  cout << p.eval(test_val) << endl;
+  cout << p.full_eval(test_val) << endl;
+  cout << p.eval(x0) << endl;
+  cout << p.eval(x0 - 1) << endl;
+}
