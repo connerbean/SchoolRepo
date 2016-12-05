@@ -1,0 +1,142 @@
+#include <iostream>
+using std::cout; using std::endl; using std::cin;
+#include <string>
+using std::string; 
+#include <cmath>
+using std::boolalpha;
+#include <algorithm>
+using std::reverse;
+
+//lower case converter
+string lower_case(string s){
+	//initialize variables
+	string temp = "";
+	size_t i;
+	char c;
+	
+	//for loop to pushback lowercase variables to new string
+	for(i = 0; i<s.length();i++){
+	  c = s[i];
+	  temp.push_back(tolower(c));
+	}
+	//return lowered string
+	return temp;
+}
+
+//convert character index values to binary
+string to_binary(char c){
+	//initialize variables
+	int j = c - 'a';
+	string b = "";
+	
+	//if the character is a
+	if(j==0){
+		b = "0";
+	}
+    if(c == ' '){
+        j = 27;
+    }
+	//keep iterating through number to convert to binary
+	while(j>0){
+		if(j%2 == 1){
+			b.push_back('1');
+		}
+		if(j%2 == 0){
+			b.push_back('0');
+		}
+		j = j/2;
+	}
+	//keep the value at length of 5
+	while(b.length() < 5){
+		b.push_back('0');
+	}
+	//have to reverse due to binary conversion rules
+	reverse(b.begin(), b.end());
+	
+	return b;
+}
+
+//convert from binary string to integer
+int from_binary(string bit_str){
+	
+	//initialize variables
+	size_t i;
+	int bi_dec = 0,index;
+	long power;
+	
+	//for loop to add powers of 2 to the number
+	for(i = 0; i<bit_str.length();i++){
+		if(bit_str[i] == '1'){
+			
+			//calculations for the index of the power of 2
+			index = 5 - i - 1;
+			power = pow(2,index);
+			bi_dec += power;
+		}
+	}
+	return bi_dec;
+}
+
+//checks to see if we have enough characters to encode
+bool check_message(string original_text, string secret_message){
+	
+	//initialize variables
+	int sm_count = secret_message.length();
+	int ct_count = 0;
+	size_t i;
+	
+	//to count the letters in the original text
+	for(i = 0; i<original_text.length();i++){
+		if(isalpha(original_text[i])){
+			ct_count += 1;
+		}
+	}
+	//conditional statements for return value
+	if(ct_count >= 5*sm_count){
+		return true;
+	}
+	else{
+		return false;
+	}
+}
+
+//encoding function
+string encode(string original_text, string secret_message){
+	//initialize variables
+	string org_txt = lower_case(original_text);
+	string sec_msg = lower_case(secret_message);
+	string temp,binary_sm = "";
+	
+	//if the code isnt encodable then return error
+	if(check_message(org_txt,sec_msg) == 0){
+		org_txt = "error";
+	}
+	
+	//the encoding block 
+	else{	
+		//change all letters to binary and append them to string
+		size_t i;
+		for(i = 0; i<sec_msg.length();i++){
+			temp = to_binary(sec_msg[i]);
+			binary_sm += temp;
+		}
+		
+		//initialize indexing variables
+		size_t e;
+		int f = 0;
+		
+		//keep 2 indexes, one for org text one for secret msg
+		for(e = 0; e<binary_sm.length();e++){
+			//if the org text is a space, move to next index
+			while(isalpha(org_txt[f]) == 0){
+					f++;
+			}
+			if(binary_sm[e] == '1'){
+				org_txt[f] = toupper(org_txt[f]);
+			}
+			//have to increase at same rate as other index
+			f++; 
+		}	
+	}
+	return org_txt;
+}
