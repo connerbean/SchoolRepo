@@ -1,0 +1,379 @@
+#include<iostream>
+using std::cout; using std::endl;
+using std::ostream; using std::cin; using std::boolalpha;
+#include<algorithm>
+using std::copy; using std::sort;
+#include<utility>
+using std::swap;
+#include<string>
+using std::string;
+#include<vector>
+using std::vector;
+#include<iterator>
+using std::distance; using std::istream_iterator;
+using std::back_inserter;
+#include<sstream>
+using std::ostringstream;
+
+//creating the element
+template<typename T>
+struct SetElement{
+public:
+  T element;
+  int cnt;
+  SetElement()=default;
+  SetElement(T val); 
+};
+
+//our constructor element, sets values
+template <typename T>
+SetElement<T>::SetElement(T val){
+	element = val;
+	cnt = 1;
+}
+
+//creates the out operator for the element
+template <typename T>
+ostream& operator <<(ostream &out, const SetElement<T> &e){
+	out << e.element << ':' << e.cnt;
+	return out;
+}
+
+//the class of multiset
+template <typename T>
+class MSet{
+private:
+  SetElement<T>* ary_;
+  size_t size_ = 0;
+  size_t capacity_;
+  void grow();
+  
+public:
+  MSet(size_t s=2);
+  MSet(T val);
+  MSet(vector<T>&);
+  MSet(MSet&);
+  MSet operator=(MSet);
+  ~MSet();
+  size_t size();
+  size_t capacity();
+  SetElement<T>* find(T);
+  void insert(T);
+  size_t count(T val); 
+  bool in_map(T val);
+  bool erase(T);
+
+  //my out operator for the multiset
+  friend ostream& operator<<(ostream& out, MSet<T>& m){
+    vector<int> count;
+    out << "Size:"<<m.size_ << ", Capacity:"<<m.capacity_<<endl;
+    for(size_t i = 0; i < m.capacity_; i++){
+	   if(m.ary_[i].cnt != 0){
+	    count.push_back(i);
+	   }
+    }
+    if(count.size() > 0){
+      for(size_t j = 0; j<count.size();j++){
+        if(j != count.size() - 1){
+          if(m.ary_[j+1].cnt == 0){
+              out << m.ary_[j];
+          }
+          else{
+          out << m.ary_[j] << ", ";
+          }
+        }
+	else{
+      if(m.ary_[j].cnt != 0){
+          out << m.ary_[j];
+      }
+	}
+      }
+    }
+    else{
+      out << "Empty";
+    }
+    return out;
+  };
+};
+
+//Copy constructor
+template <typename T>
+MSet<T>::MSet(MSet<T> &t){
+    size_ = t.size_;
+    capacity_ = t.capacity_;
+    ary_ = new SetElement<T>[size_];
+    copy(t.ary_,t.ary_+t.size_,ary_);
+};
+
+//assignment 
+template <typename T>
+MSet<T> MSet<T>::operator =(MSet<T> t){
+    swap(this->size_,t.size_);
+    swap(this->capacity_,t.capacity_);
+    swap(this->ary_,t.ary_);
+    return *this;
+};
+
+//delete method
+template <typename T>
+MSet<T>::~MSet(){
+    delete [] ary_;
+};
+
+//creates a new multiset of size
+template <typename T>
+MSet<T>::MSet(size_t s){
+    ary_ = new SetElement<T>[s];
+    capacity_ = s;
+};
+
+//creates multiset with a specific value
+template <typename T>
+MSet<T>::MSet(T val){
+    ary_ = new SetElement<T>[2];
+    capacity_ = 2;
+    ary_[0].element = val;
+    ary_[0].cnt = 1;
+    size_ += 1;
+};
+
+//grow function to increase size of array
+template <typename T>
+void MSet<T>::grow(){
+  //creates new larger memory, deletes old
+  
+    capacity_ += capacity_;
+    SetElement<T>* ary2_;
+    ary2_ = new SetElement<T>[capacity_];
+	//see if copy can work here
+    for(size_t i=0;i<size_;i++){
+    	ary2_[i] = ary_[i];
+    }
+    delete [] ary_;
+    ary_ = ary2_;
+};
+
+//constructs a multiset from vector values
+template <typename T>
+MSet<T>::MSet(vector<T>& v){
+    ary_ = new SetElement<T>[2];
+    //size_ = v.size();
+    capacity_ = 2;
+    while(capacity_<v.size()){
+      grow();
+    }
+    for(size_t i = 0; i<v.size();i++){
+      ary_[i] = v[i];
+      size_++;
+    }
+};
+
+//returns the size of the multiset
+template <typename T>
+size_t MSet<T>::size(){
+    return size_;
+};
+
+//returns the capacity of multiset
+template <typename T>
+size_t MSet<T>::capacity(){
+	return capacity_;
+};
+
+//returns the pointer to a value in the MSet
+template <typename T> 
+SetElement<T>* MSet<T>::find(T val){
+    for(size_t i =0;i<capacity_;i++){
+      if(ary_[i].element == val){return (ary_+i);}
+    }
+    return nullptr;
+};
+
+//boolean, if a value is in the multiset
+template <typename T>
+bool MSet<T>::in_map(T val){
+    for(size_t i =0;i<capacity_;i++){
+      if(ary_[i].element == val){return true;}
+    }
+    return false;
+};
+
+//inserts a value into MSet
+template <typename T>
+void MSet<T>::insert(T val){
+    if(in_map(val)){
+       	auto p = find(val);
+       	auto &q = *p;
+       	q.cnt ++;
+    }
+    else{
+        if(size_==capacity_){
+	    grow();
+	}
+	size_++;
+	//checks for first empty location
+	for(size_t i=0;i<capacity_;i++){
+	    if(ary_[i].cnt == 0){
+	      ary_[i] = val;
+	      break;
+	    }
+	}
+    }
+};
+
+//returns the count of a value in the MSet
+//returns 0 if value not in MSet
+template <typename T>
+size_t MSet<T>::count(T val){
+  for(size_t i =0;i<size_;i++){
+    if(ary_[i].element == val){
+	  return ary_[i].cnt;
+	}
+    }
+   return 0;
+};
+
+//erases value from MSet
+template <typename T>
+bool MSet<T>::erase(T val){
+  if(in_map(val)){
+    for(size_t i =0;i<capacity_;i++){
+      if(ary_[i].element == val){
+	if(ary_[i].cnt > 1){
+	  ary_[i].cnt --;
+	}
+	else if(ary_[i].cnt == 1){
+	  //shifts array down 1 spot
+	  while(i < size_){
+	    ary_[i] = ary_[i+1];
+            i++;
+	  }
+	  ary_[size_] = NULL;
+	  size_ --;
+	  break;
+        }
+      }
+        
+    }
+    return true;
+  }
+  else{
+    return false;
+  }
+};
+
+
+
+
+// DO NOT CHANGE ANYTHING BELOW. TESTING!
+int main(){
+  int test;
+  long l1, l2, l3;
+
+  cin >> test;
+  cout << boolalpha;
+
+  switch (test){
+
+    // basic constructors, .size() and .capacity()
+  case 1 : {
+    MSet<long> m_l;    
+    cout << m_l.size() <<":"<< m_l.capacity()<<endl;    
+    cin >> l1;
+    MSet<long> m_l_oneval(l1);
+    cout << m_l_oneval.size() <<":"<< m_l_oneval.capacity()<<endl;
+    break;
+  }
+
+    // find
+  case 2 : {
+    cin >> l1 >> l2;
+    MSet<long> m_l(l1);    
+    auto p = m_l.find(l1);
+    if (p != nullptr)
+      cout << *p << endl;
+    else
+      cout << "Val:"<<l1<<" not found "<<endl;
+    
+    p = m_l.find(l2);
+    if (p != nullptr)
+      cout << *p << endl;
+    else
+      cout << "Val:"<<l2<<" not found "<<endl;
+    break;
+  }
+
+    // insert and operator<<
+  case 3 : {
+    MSet<long> m_l;
+    cin >> l1 >> l2 >> l3;
+    cout << m_l << endl;
+    m_l.insert(l1);
+    cout << m_l << endl;
+    m_l.insert(l2);
+    m_l.insert(l3);
+    m_l.insert(l2);
+    cout << m_l << endl;
+    break;
+  }
+
+    // copy
+  case 4 : {
+    MSet<long> m_l;
+    cin >> l1 >> l2 >> l3;
+    m_l.insert(l1);
+    m_l.insert(l2);
+    MSet<long> m_copy(m_l);
+    m_copy.insert(l3);  
+    cout << m_l << endl;
+    cout << m_copy << endl;
+    break;
+  }
+
+    // assign
+  case 5 : {
+    MSet<long> m_l;
+    cin >> l1 >> l2 >> l3;
+    m_l.insert(l1);
+    m_l.insert(l2);   
+    MSet<long> m_assign= m_l;
+    m_assign.insert(l3);
+    cout << m_l << endl;
+    cout << m_assign << endl;
+    break;
+  }
+
+    // erase
+  case 6 : {
+    cin >> l1 >> l2 >> l3;
+    MSet<long> m_l;
+    m_l.insert(l1);
+    m_l.insert(l2);
+    m_l.insert(l3);
+    m_l.insert(l2);
+    cout << m_l << endl;
+    cout << m_l.erase(l2) << endl;
+    cout << m_l << endl;
+    cout << m_l.erase(l2) << endl;
+    cout << m_l << endl;
+    cout << m_l.erase(l2) << endl;
+    cout << m_l << endl;
+    break;
+  }
+    
+    // string, vector constructor, count
+  case 7 : {
+    vector<string>v_s;
+    copy(istream_iterator<string>(cin),
+	 istream_iterator<string>(),
+	 back_inserter(v_s)
+	 );
+    MSet<string>m_s(v_s);
+    m_s.insert(v_s[0]);
+    cout << m_s.count(v_s[0]) << endl;
+    cout << m_s.count("xyzzy") << endl;
+    cout << m_s << endl;
+    break;
+  }
+  }
+}
