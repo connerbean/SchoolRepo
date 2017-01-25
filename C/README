@@ -1,1 +1,5 @@
 C++ Programs
+
+Windows: Compile in Visual Studio
+OSX: Open Terminal, type: $ g++ FILENAME.cpp -o FILENAME, and hit enter. Then type: $ ./FILENAME
+Linux: Follow above steps for OSX except in Bash or in Geany/IDE of choice
